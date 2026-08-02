@@ -146,7 +146,10 @@ function resetRoute(){
   routeFill.style.width = '0%';
   stops.forEach(s=>s.classList.remove('done'));
 }
-function animateRoute(){
+// Runs the stop-by-stop animation once, then (if the real request is still
+// pending) gently pulses the last stop instead of sitting frozen — this
+// keeps the UI honest during a Render cold start (up to ~60s).
+function animateRoute(isStillWaiting){
   return new Promise(resolve=>{
     resetRoute();
     routePanel.classList.add('active');
@@ -159,6 +162,12 @@ function animateRoute(){
         routeFill.style.width = pct + '%';
         i++;
         setTimeout(tick, 380);
+      } else if(isStillWaiting && isStillWaiting()){
+        // Pulse the last stop while we keep waiting on the real response
+        const lastDot = stops[total-1].querySelector('.dot');
+        lastDot.style.transition = 'transform .5s ease';
+        lastDot.style.transform = lastDot.style.transform === 'scale(1.3)' ? 'scale(1)' : 'scale(1.3)';
+        setTimeout(tick, 500);
       } else {
         setTimeout(resolve, 250);
       }
@@ -213,15 +222,20 @@ predictBtn.addEventListener('click', async ()=>{
   predictBtn.classList.add('loading');
   predictBtn.disabled = true;
 
-  const routeDone = animateRoute();
+  let fetchFinished = false;
+  const routeDone = animateRoute(()=>!fetchFinished);
 
   let apiResult = null, apiError = null;
   try{
+    const controller = new AbortController();
+    const timeoutId = setTimeout(()=>controller.abort(), 70000); // 70s: covers Render free-tier cold start
     const res = await fetch(apiUrl, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if(!res.ok){
       const errBody = await res.text();
       throw new Error(`Server responded ${res.status}: ${errBody.slice(0,200)}`);
@@ -230,6 +244,7 @@ predictBtn.addEventListener('click', async ()=>{
   }catch(err){
     apiError = err;
   }
+  fetchFinished = true;
 
   await routeDone;
   predictBtn.classList.remove('loading');
@@ -239,7 +254,7 @@ predictBtn.addEventListener('click', async ()=>{
     showError(
       `Couldn't reach the model server at <code>${apiUrl}</code>.<br>` +
       `${apiError.message}<br><br>` +
-      `Make sure your FastAPI backend is running (<code>uvicorn main:app --reload</code>) and that CORS allows this page's origin.`
+      `If this is the live Render backend, it may be waking up from sleep (free-tier instances spin down after 15 minutes idle and take 30-60s to restart) — try again in a moment.`
     );
     routePanel.classList.remove('active');
     return;
