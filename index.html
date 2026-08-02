@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listing Lab · NYC Room-Type Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@600;700;800&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand"><span class="badge">L</span>Listing Lab</div>
+  <div class="nav-links">
+    <a href="#predict">Predict</a>
+    <a href="#how">How it works</a>
+    <a href="#model">Model card</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">Model server · live inference</span>
+    <h1>Guess the room<br>before the <em>guest</em> does.</h1>
+    <p class="lede">Feed in a listing's coordinates, price, and history — a Random Forest trained on NYC Airbnb data predicts whether it's an entire home, a private room, or a shared room, with a full confidence breakdown.</p>
+    <div class="hero-stats">
+      <div class="stat"><span class="num">5</span><span class="lbl">Boroughs</span></div>
+      <div class="stat"><span class="num">218</span><span class="lbl">Neighbourhoods</span></div>
+      <div class="stat"><span class="num">300</span><span class="lbl">Trees in forest</span></div>
+      <div class="stat"><span class="num">3</span><span class="lbl">Room classes</span></div>
+    </div>
+  </div>
+  <div class="skyline-wrap">
+    <svg class="skyline" viewBox="0 0 460 300" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="230" width="46" height="70" class="bldg"/>
+      <rect x="50" y="190" width="34" height="110" class="bldg lit"/>
+      <rect x="88" y="150" width="40" height="150" class="bldg"/>
+      <rect x="132" y="200" width="30" height="100" class="bldg lit"/>
+      <rect x="166" y="110" width="46" height="190" class="bldg"/>
+      <rect x="216" y="60" width="38" height="240" class="bldg lit"/>
+      <rect x="258" y="140" width="34" height="160" class="bldg"/>
+      <rect x="296" y="95" width="42" height="205" class="bldg lit"/>
+      <rect x="342" y="170" width="30" height="130" class="bldg"/>
+      <rect x="376" y="205" width="40" height="95" class="bldg lit"/>
+      <rect x="420" y="235" width="34" height="65" class="bldg"/>
+      <g id="windows"></g>
+    </svg>
+  </div>
+</header>
+
+<section id="predict">
+  <div class="section-head">
+    <span class="tag">Console 01 / Predict</span>
+    <h2>Run a listing through the model</h2>
+    <p>Fill in the fields below exactly as the FastAPI <code>/predict</code> endpoint expects them — this form posts straight to your running backend.</p>
+  </div>
+
+  <div class="console-wrap">
+    <div class="console">
+      <div class="console-header">
+        <span class="title">// listing_input.json</span>
+        <div class="dots"><span></span><span></span><span></span></div>
+      </div>
+
+      <div class="field-group">
+        <div class="field">
+          <label>Neighbourhood group <span class="hint">borough</span></label>
+          <select id="neighbourhood_group">
+            <option value="">Select borough…</option>
+          </select>
+          <div class="err"></div>
+        </div>
+        <div class="field">
+          <label>Neighbourhood <span class="hint">specific area</span></label>
+          <select id="neighbourhood" disabled>
+            <option value="">Select borough first…</option>
+          </select>
+          <div class="err"></div>
+        </div>
+        <div class="field">
+          <label>Latitude</label>
+          <input type="number" id="latitude" step="0.000001" placeholder="e.g. 40.712776" min="-90" max="90">
+          <div class="err"></div>
+        </div>
+        <div class="field">
+          <label>Longitude</label>
+          <input type="number" id="longitude" step="0.000001" placeholder="e.g. -73.935242" min="-180" max="180">
+          <div class="err"></div>
+        </div>
+        <div class="field">
+          <label>Price per night <span class="hint">USD</span></label>
+          <input type="number" id="price" step="1" placeholder="e.g. 150" min="1">
+          <div class="err"></div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field">
+          <label>Minimum nights</label>
+          <div class="range-row">
+            <input type="range" id="minimum_nights_range" min="1" max="365" value="3">
+            <input type="number" id="minimum_nights" min="1" max="365" value="3" style="width:70px;">
+          </div>
+          <div class="err"></div>
+        </div>
+        <div class="field">
+          <label>Number of reviews</label>
+          <input type="number" id="number_of_reviews" min="0" step="1" placeholder="e.g. 24">
+          <div class="err"></div>
+        </div>
+        <div class="field">
+          <label>Reviews per month</label>
+          <input type="number" id="reviews_per_month" min="0" step="0.01" placeholder="e.g. 1.4">
+          <div class="err"></div>
+        </div>
+        <div class="field">
+          <label>Host's total listings <span class="hint">calculated_host_listings_count</span></label>
+          <input type="number" id="calculated_host_listings_count" min="0" step="1" placeholder="e.g. 2">
+          <div class="err"></div>
+        </div>
+        <div class="field">
+          <label>Availability (days/365)</label>
+          <div class="range-row">
+            <input type="range" id="availability_365_range" min="0" max="365" value="180">
+            <input type="number" id="availability_365" min="0" max="365" value="180" style="width:70px;">
+          </div>
+          <div class="err"></div>
+        </div>
+      </div>
+
+      <div class="error-banner" id="errorBanner"></div>
+
+      <div class="console-actions">
+        <div class="api-endpoint">
+          Endpoint:
+          <input type="text" id="apiUrl" value="http://127.0.0.1:8000/predict" spellcheck="false">
+        </div>
+        <button class="btn btn-primary" id="predictBtn">
+          <span class="spinner"></span>
+          <span class="btn-txt">Run prediction →</span>
+        </button>
+      </div>
+
+      <div class="route-panel" id="routePanel">
+        <div class="route-track">
+          <div class="route-line"></div>
+          <div class="route-line-fill" id="routeFill"></div>
+          <div class="route-stop" data-stop="0"><div class="dot"></div><div class="lbl">Validate</div></div>
+          <div class="route-stop" data-stop="1"><div class="dot"></div><div class="lbl">Encode</div></div>
+          <div class="route-stop" data-stop="2"><div class="dot"></div><div class="lbl">Scale</div></div>
+          <div class="route-stop" data-stop="3"><div class="dot"></div><div class="lbl">Forest vote</div></div>
+          <div class="route-stop" data-stop="4"><div class="dot"></div><div class="lbl">Result</div></div>
+        </div>
+      </div>
+
+      <div class="ticket" id="ticket">
+        <div class="ticket-top">
+          <span class="route-name">NYC transit · predicted class</span>
+          <span class="ticket-stamp" id="stampText">—</span>
+        </div>
+        <div class="ticket-body">
+          <div class="ticket-probs" id="probRows"></div>
+          <div class="ticket-side">
+            <div class="row"><span class="k">Borough</span><span class="v" id="sideBorough">—</span></div>
+            <div class="row"><span class="k">Nightly price</span><span class="v" id="sidePrice">—</span></div>
+            <div class="row"><span class="k">Min. nights</span><span class="v" id="sideMinNights">—</span></div>
+            <div class="row"><span class="k">Availability</span><span class="v" id="sideAvail">—</span></div>
+          </div>
+        </div>
+        <div class="ticket-perf">Served by RandomForestClassifier · 300 estimators · class_weight=balanced</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="how" class="how">
+  <div class="section-head">
+    <span class="tag">Console 02 / Pipeline</span>
+    <h2>What happens after you hit predict</h2>
+    <p>Your inputs travel the same route every listing takes through the trained pipeline.</p>
+  </div>
+  <div class="steps">
+    <div class="step-card">
+      <span class="n">Stop 1</span>
+      <h3>Validation</h3>
+      <p>Pydantic checks ranges — latitude between −90 and 90, availability between 0 and 365 — before anything reaches the model.</p>
+    </div>
+    <div class="step-card">
+      <span class="n">Stop 2</span>
+      <h3>Impute &amp; encode</h3>
+      <p>Numeric gaps are filled with the median, categoricals with the most frequent value, then borough and neighbourhood are one-hot encoded.</p>
+    </div>
+    <div class="step-card">
+      <span class="n">Stop 3</span>
+      <h3>Scale &amp; vote</h3>
+      <p>Numeric features are standardized, then 300 decision trees each cast a vote across the three room-type classes.</p>
+    </div>
+  </div>
+</section>
+
+<section id="model">
+  <div class="section-head">
+    <span class="tag">Console 03 / Model card</span>
+    <h2>What's under the hood</h2>
+    <p>The exact pipeline loaded by the FastAPI backend from <code class="mono">Model_Pipeline.pkl</code>.</p>
+  </div>
+  <div class="model-grid">
+    <table class="spec-table">
+      <tr><td>Estimator</td><td>RandomForestClassifier</td></tr>
+      <tr><td>Trees</td><td>300</td></tr>
+      <tr><td>Min samples / split</td><td>10</td></tr>
+      <tr><td>Class weighting</td><td>Balanced</td></tr>
+      <tr><td>Numeric prep</td><td>Median impute → Standard scale</td></tr>
+      <tr><td>Categorical prep</td><td>Mode impute → One-hot encode</td></tr>
+      <tr><td>Input features</td><td>10</td></tr>
+    </table>
+    <div class="class-legend">
+      <div class="legend-item"><span class="swatch" style="background:var(--navy);"></span><div class="txt"><strong>Entire home/apt</strong><span>The whole unit, no shared common spaces with a host.</span></div></div>
+      <div class="legend-item"><span class="swatch" style="background:var(--brick);"></span><div class="txt"><strong>Private room</strong><span>A private bedroom inside a shared home or apartment.</span></div></div>
+      <div class="legend-item"><span class="swatch" style="background:var(--green);"></span><div class="txt"><strong>Shared room</strong><span>A shared sleeping space, no private room of your own.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Built on the FastAPI <strong>/predict</strong> endpoint · point <strong>apiUrl</strong> above at your running server to go live
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
