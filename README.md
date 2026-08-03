@@ -4,6 +4,7 @@ A machine learning web app that predicts an NYC Airbnb listing's room type — *
 
 **Backend:** FastAPI + scikit-learn (RandomForestClassifier)
 **Frontend:** HTML/CSS/JS, built with Claude
+
 **Working Link:** https://listing-lab-nyc-airbnb-room-type-3t4s.onrender.com/
 ---
 
